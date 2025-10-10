@@ -1,6 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, abort, session
-from functools import wraps
-from flask_login import LoginManager
+from flask import Flask, render_template, request, redirect, url_for, abort
+from forms import LoginForm
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User
 from werkzeug.utils import secure_filename
 import os
@@ -23,7 +23,7 @@ db.init_app(app)
 
 login_manager = LoginManager();
 login_manager.init_app(app)
-login_manager.login_view = "login"
+login_manager.login_view = "admin"
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -74,15 +74,6 @@ carousel_items = [
     }
 ]
 
-# -------------------- Декоратор -------------------- #
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not session.get("admin_logged_in"):
-            return redirect(url_for("admin"))
-        return f(*args, **kwargs)
-    return decorated_function
-
 # -------------------- Routes -------------------- #
 
 @app.route("/")
@@ -102,23 +93,24 @@ def product_detail(product_id):
 
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
+    form = LoginForm()
     error = None
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-        admin_user = next((a for a in admins if a["username"] == username and a["password"] == password), None)
-        if admin_user:
-            session["admin_logged_in"] = True
-            session["admin_name"] = admin_user["username"]
+    if current_user.is_authenticated:
+        return redirect(url_for("admin_dashboard"))
+
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user and user.password == form.password.data:
+            login_user(user)
             return redirect(url_for("admin_dashboard"))
-        else:
+        else: 
             error = "Невірний логін або пароль"
-    return render_template("admin.html", error=error)
+    return render_template("admin.html", error=error, form=form)
 
 @app.route("/admin/dashboard")
 @login_required
 def admin_dashboard():
-    admin_name = session.get("admin_name", "Admin")
+    admin_name = current_user.username
     q = request.args.get("q", "").lower()
     filtered_products = [p for p in products if q in p["name"].lower()] if q else products
     return render_template("admin_dashboard.html", products=filtered_products, admin_name=admin_name)
@@ -128,7 +120,7 @@ def admin_dashboard():
 def admin_list():
     q = request.args.get("q", "").lower()
     filtered_admins = [a for a in admins if q in a["username"].lower() or q in a["name"].lower()] if q else admins
-    return render_template("admin_dashboard_admins.html", admin_name=session.get("admin_name"), admins=filtered_admins)
+    return render_template("admin_dashboard_admins.html", admin_name=current_user.username, admins=filtered_admins)
 
 @app.route("/admin/add_product", methods=["GET", "POST"])
 @login_required
@@ -183,7 +175,7 @@ def delete_product(product_id):
 @app.route("/admin/carousel", methods=["GET", "POST"])
 @login_required
 def admin_carousel():
-    return render_template("admin_carousel.html", admin_name=session.get("admin_name"), carousel_items=carousel_items)
+    return render_template("admin_carousel.html", admin_name=current_user.username, carousel_items=carousel_items)
 
 @app.route("/admin/add_carousel_item", methods=["GET", "POST"])
 @login_required
@@ -258,7 +250,7 @@ def delete_carousel_item(item_id):
 
 @app.route("/logout")
 def logout():
-    session.clear()
+    logout_user()
     return redirect(url_for("admin"))
 
 # -------------------- Run -------------------- #
