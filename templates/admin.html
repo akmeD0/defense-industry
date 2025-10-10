@@ -7,14 +7,15 @@
 {% endif %}
 
 <form method="POST">
+    {{ form.hidden_tag() }}
     <div class="mb-3">
-        <label class="form-label">Логін</label>
-        <input type="text" name="username" class="form-control" required>
+        <label class="form-label">{{ form.username.label }}</label>
+        {{ form.username(class="form-control") }}
     </div>
     <div class="mb-3">
-        <label class="form-label">Пароль</label>
-        <input type="password" name="password" class="form-control" required>
+        <label class="form-label">{{ form.password.label }}</label>
+        {{ form.password(class="form-control") }}
     </div>
-    <button type="submit" class="btn btn-primary">Увійти</button>
+    {{ form.submit(class="btn btn-primary") }}
 </form>
 {% endblock %}
