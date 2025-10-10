@@ -1,0 +1,66 @@
+body {
+    background-color: #f8f9fa;
+    margin: 0;
+}
+
+.card img {
+    height: 200px;
+    object-fit: cover;
+}
+
+/* Додаємо стилі для navbar spacing */
+.navbar-nav .nav-item.px-3 .nav-link {
+    font-size: 1.1rem;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}
+
+/* Стилі для каруселі */
+.carousel-img {
+    height: 65vh; /* приблизно 65% висоти вікна */
+    object-fit: cover;
+}
+
+.carousel-caption h1 {
+    font-size: 3rem;
+    font-weight: bold;
+}
+
+.carousel-caption p {
+    font-size: 1.25rem;
+}
+
+/* Можеш регулювати залежно від екрану */
+@media (max-width: 768px) {
+    .carousel-caption h1 {
+        font-size: 2rem;
+    }
+    .carousel-caption p {
+        font-size: 1rem;
+    }
+}
+
+
+/* Sidebar для великих екранів */
+.sidebar {
+  position: fixed;
+  top: 4rem;
+  left: 0;
+  width: 240px;
+  height: 100vh;
+}
+
+.main-content {
+  margin-left: 240px; /* Відступ для контенту */
+  padding: 20px;
+}
+
+/* На мобільних (менше 768px) */
+@media (max-width: 767px) {
+  .sidebar {
+    display: none !important; /* ховаємо фіксовану панель */
+  }
+  .main-content {
+    margin-left: 0; /* без відступу */
+  }
+}

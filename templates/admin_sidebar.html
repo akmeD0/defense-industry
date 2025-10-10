@@ -1,0 +1,21 @@
+<div class="d-flex">
+  <!-- Бокова панель -->
+  <div class="bg-dark text-light p-3" style="width:240px; min-height:100vh;">
+    <h4 class="mb-4">Адмін панель</h4>
+    <div class="mb-3">
+      <strong>👤 {{ admin_name }}</strong>
+    </div>
+    <ul class="nav flex-column">
+      <li class="nav-item mb-2">
+        <a class="nav-link text-light" href="{{ url_for('admin_dashboard') }}">Продукти</a>
+      </li>
+      <li class="nav-item mb-2">
+        <a class="nav-link text-light" href="{{ url_for('admin_carousel') }}">Карусель</a>
+      </li>
+      <li class="nav-item mb-2">
+        <a class="nav-link text-light" href="{{ url_for('admin_list') }}">Адміни</a>
+      </li>
+    </ul>
+  </div>
+
+

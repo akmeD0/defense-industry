@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <!-- Бокова панель -->
+    {% include "admin_sidebar.html" %}
+
+    <!-- Основна панель -->
+    <div class="col-md-9 col-lg-10 p-4">
+      <h3 class="mb-4">Список адміністраторів</h3>
+
+      <!-- Пошук -->
+      <form method="GET" class="mb-3 d-flex">
+        <input type="text" name="q" class="form-control me-2" placeholder="Пошук адміністраторів..." value="{{ request.args.get('q', '') }}">
+        <button class="btn btn-primary">Пошук</button>
+      </form>
+
+      <!-- Таблиця адміністраторів -->
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Ім'я</th>
+            <th>Логін</th>
+            <th>Пошта</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in admins %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ a.name }}</td>
+            <td>{{ a.username }}</td>
+            <td>{{ a.email }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" class="text-center">Адміністратори не знайдені</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-4">Вхід в адмін панель</h2>
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<form method="POST">
+    <div class="mb-3">
+        <label class="form-label">Логін</label>
+        <input type="text" name="username" class="form-control" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Пароль</label>
+        <input type="password" name="password" class="form-control" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Увійти</button>
+</form>
+{% endblock %}

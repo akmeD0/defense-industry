@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h2>Додати новий слайд</h2>
+  <form method="POST" enctype="multipart/form-data">
+    <div class="mb-3">
+      <label class="form-label">Зображення</label>
+      <input type="file" name="img_file" class="form-control" accept="image/*" required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Заголовок</label>
+      <input type="text" name="title" class="form-control">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Опис</label>
+      <textarea name="desc" class="form-control" rows="3"></textarea>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Позиція тексту</label>
+      <select name="text_position" class="form-select">
+        <option value="left">Зліва</option>
+        <option value="right">Справа</option>
+        <option value="center" selected>По центру</option>
+        <option value="none">Без тексту</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Текст кнопки</label>
+      <input type="text" name="button_text" class="form-control">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Посилання кнопки</label>
+      <input type="text" name="button_link" class="form-control">
+    </div>
+    <button type="submit" class="btn btn-success">Додати слайд</button>
+    <a href="{{ url_for('admin_carousel') }}" class="btn btn-secondary">Назад</a>
+  </form>
+</div>
+{% endblock %}
