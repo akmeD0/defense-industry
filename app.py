@@ -1,5 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, abort, session
 from functools import wraps
+from flask_login import LoginManager
+from models import db, User
 from werkzeug.utils import secure_filename
 import os
 
@@ -12,6 +14,21 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db.init_app(app)
+
+login_manager = LoginManager();
+login_manager.init_app(app)
+login_manager.login_view = "login"
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
 
 # Список користувачів
 admins = [
@@ -246,4 +263,15 @@ def logout():
 
 # -------------------- Run -------------------- #
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
+        for admin in admins:
+            if not User.query.filter_by(username=admin["username"]).first():
+                new_user = User()
+                new_user.username = admin["username"]
+                new_user.email = admin["email"]
+                new_user.password = admin["password"]
+                new_user.name = admin["name"]
+                db.session.add(new_user)
+        db.session.commit()
     app.run(debug=True)
