@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, abort
 from forms import LoginForm
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from models import db, User
+from models import db, User, Product, Carousel
 from werkzeug.utils import secure_filename
 import os
 
@@ -258,12 +258,36 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
         for admin in admins:
-            if not User.query.filter_by(username=admin["username"]).first():
-                new_user = User()
-                new_user.username = admin["username"]
-                new_user.email = admin["email"]
-                new_user.password = admin["password"]
-                new_user.name = admin["name"]
-                db.session.add(new_user)
+            if User.query.filter_by(username=admin["username"]).first():
+                continue
+            new_user = User()
+            new_user.username = admin["username"]
+            new_user.email = admin["email"]
+            new_user.password = admin["password"]
+            new_user.name = admin["name"]
+            db.session.add(new_user)
+
+
+        for product in products:
+            if Product.query.filter_by(name=product["name"]).first():
+                continue
+            new_product = Product()
+            new_product.name = product["name"]
+            new_product.desc = product["desc"]
+            new_product.img = product["img"]
+            db.session.add(new_product)
+
+
+        for item in carousel_items:
+            if Carousel.query.filter_by(title=item["title"]).first():
+                continue
+            new_item = Carousel()
+            new_item.img = item["img"]
+            new_item.title = item["title"]
+            new_item.desc = item["desc"]
+            new_item.text_positon = item["text_position"]
+            new_item.button_text = item["button_text"]
+            new_item.button_link = item["button_link"]
+            db.session.add(new_item)
         db.session.commit()
     app.run(debug=True)
