@@ -88,7 +88,7 @@ def products_page():
 
 @app.route("/products/<int:product_id>")
 def product_detail(product_id):
-    product = next((p for p in products if p["id"] == product_id), None)
+    product = db.session.get(Product, product_id)
     if not product:
         abort(404)
     return render_template("product_detail.html", product=product)
