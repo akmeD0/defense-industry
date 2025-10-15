@@ -3,19 +3,23 @@
 <div class="container mt-4">
   <h2>Додати новий продукт</h2>
   <form method="POST" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
     <div class="mb-3">
       <label class="form-label">Назва продукту</label>
-      <input type="text" name="name" class="form-control" required>
+      {{ form.name(class_="form-control") }}
     </div>
     <div class="mb-3">
       <label class="form-label">Опис</label>
-      <textarea name="desc" class="form-control" rows="4" required></textarea>
+      {{ form.desc(class_="form-control", rows=4) }}
     </div>
     <div class="mb-3">
       <label class="form-label">Зображення</label>
-      <input type="file" name="img_file" class="form-control" accept="image/*" required>
+      {% if error %}
+      <div class="alert alert-danger">{{ error }}</div>
+      {% endif %}
+      {{ form.file(class_="form-control", accept="image/*") }}
     </div>
-    <button type="submit" class="btn btn-success">Додати</button>
+    {{ form.submit(class_="btn btn-success") }}
     <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Назад</a>
   </form>
 </div>
