@@ -78,10 +78,12 @@ carousel_items = [
 
 @app.route("/")
 def index():
+    carousel_items = db.session.scalars(db.select(Carousel)).all()
     return render_template("index.html", carousel_items=carousel_items)
 
 @app.route("/products")
 def products_page():
+    products = db.session.scalars(db.select(Product)).all()
     return render_template("products.html", products=products)
 
 @app.route("/products/<int:product_id>")
