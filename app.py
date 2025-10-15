@@ -1,7 +1,8 @@
 from flask import Flask, render_template, request, redirect, url_for, abort
-from forms import LoginForm
+from forms import LoginForm, SearchForm
+from sqlalchemy import or_
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from models import db, User
+from models import db, User, Product, Carousel
 from werkzeug.utils import secure_filename
 import os
 
@@ -27,7 +28,7 @@ login_manager.login_view = "admin"
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 
 # Список користувачів
@@ -78,15 +79,17 @@ carousel_items = [
 
 @app.route("/")
 def index():
+    carousel_items = db.session.scalars(db.select(Carousel)).all()
     return render_template("index.html", carousel_items=carousel_items)
 
 @app.route("/products")
 def products_page():
+    products = db.session.scalars(db.select(Product)).all()
     return render_template("products.html", products=products)
 
 @app.route("/products/<int:product_id>")
 def product_detail(product_id):
-    product = next((p for p in products if p["id"] == product_id), None)
+    product = db.session.get(Product, product_id)
     if not product:
         abort(404)
     return render_template("product_detail.html", product=product)
@@ -107,20 +110,33 @@ def admin():
             error = "Невірний логін або пароль"
     return render_template("admin.html", error=error, form=form)
 
-@app.route("/admin/dashboard")
+@app.route("/admin/dashboard", methods=["GET", "POST"])
 @login_required
 def admin_dashboard():
+    form = SearchForm()
     admin_name = current_user.username
-    q = request.args.get("q", "").lower()
-    filtered_products = [p for p in products if q in p["name"].lower()] if q else products
-    return render_template("admin_dashboard.html", products=filtered_products, admin_name=admin_name)
+    filtered_products = db.session.scalars(db.select(Product)).all()
 
-@app.route("/admin/admins")
+    if form.validate_on_submit() and form.targetValue.data:
+        search_term = f"%{form.targetValue.data.lower()}%"
+        filtered_products = db.session.scalars(db.select(Product).where(
+            Product.searchField.like(search_term))
+        ).all()
+    return render_template("admin_dashboard.html", products=filtered_products, admin_name=admin_name, form=form)
+
+@app.route("/admin/admins", methods=["GET", "POST"])
 @login_required
 def admin_list():
-    q = request.args.get("q", "").lower()
-    filtered_admins = [a for a in admins if q in a["username"].lower() or q in a["name"].lower()] if q else admins
-    return render_template("admin_dashboard_admins.html", admin_name=current_user.username, admins=filtered_admins)
+    form = SearchForm()
+    admin_name = current_user.username
+    filtered_admins = db.session.scalars(db.select(User)).all()
+
+    if form.validate_on_submit() and form.targetValue.data:
+        search_term = f"%{form.targetValue.data.lower()}%"
+        filtered_admins = db.session.scalars(db.select(User).where(
+            User.searchField.like(search_term))
+        ).all()
+    return render_template("admin_dashboard_admins.html", admin_name=admin_name, admins=filtered_admins, form=form)
 
 @app.route("/admin/add_product", methods=["GET", "POST"])
 @login_required
@@ -258,12 +274,38 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
         for admin in admins:
-            if not User.query.filter_by(username=admin["username"]).first():
-                new_user = User()
-                new_user.username = admin["username"]
-                new_user.email = admin["email"]
-                new_user.password = admin["password"]
-                new_user.name = admin["name"]
-                db.session.add(new_user)
+            if User.query.filter_by(username=admin["username"]).first():
+                continue
+            new_user = User()
+            new_user.username = admin["username"]
+            new_user.email = admin["email"]
+            new_user.password = admin["password"]
+            new_user.name = admin["name"]
+            new_user.searchField = f"{admin["name"]} {admin["username"]}".lower()
+            db.session.add(new_user)
+
+
+        for product in products:
+            if Product.query.filter_by(name=product["name"]).first():
+                continue
+            new_product = Product()
+            new_product.name = product["name"]
+            new_product.desc = product["desc"]
+            new_product.img = product["img"]
+            new_product.searchField = f"{product["name"]} {product["desc"]}".lower()
+            db.session.add(new_product)
+
+
+        for item in carousel_items:
+            if Carousel.query.filter_by(title=item["title"]).first():
+                continue
+            new_item = Carousel()
+            new_item.img = item["img"]
+            new_item.title = item["title"]
+            new_item.desc = item["desc"]
+            new_item.text_positon = item["text_position"]
+            new_item.button_text = item["button_text"]
+            new_item.button_link = item["button_link"]
+            db.session.add(new_item)
         db.session.commit()
     app.run(debug=True)
