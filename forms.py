@@ -19,3 +19,9 @@ class AddProductForm(FlaskForm):
     desc = TextAreaField("Опис", validators=[DataRequired()])
     file = FileField("Зображення", validators=[DataRequired()])
     submit = SubmitField("Додати")
+
+class EditProductForm(FlaskForm):
+    name = StringField("Назва продукту", validators=[DataRequired()])
+    desc = TextAreaField("Опис", validators=[DataRequired()])
+    file = FileField("Зображення")
+    submit = SubmitField("Додати")

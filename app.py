@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, abort
-from forms import LoginForm, SearchForm, AddProductForm
+from forms import LoginForm, SearchForm, AddProductForm, EditProductForm
 from flask_login import (
     LoginManager,
     login_user,
@@ -206,24 +206,30 @@ def add_product():
 @app.route("/admin/edit/<int:product_id>", methods=["GET", "POST"])
 @login_required
 def edit_product(product_id):
-    product = next((p for p in products if p["id"] == product_id), None)
+    product = db.session.get(Product, product_id)
     if not product:
         abort(404)
 
-    if request.method == "POST":
-        product["name"] = request.form.get("name")
-        product["desc"] = request.form.get("desc")
-
-        # Завантаження файлу
-        file = request.files.get("img_file")
+    form = EditProductForm(obj=product)
+    if form.validate_on_submit():
+        file = form.file.data
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-            product["img"] = filename  # зберігаємо ім'я файлу в продукті
 
+            product_count = Product.query.filter(Product.img == product.img).count()
+            if product_count == 1:
+                os.remove(os.path.join(app.config["UPLOAD_FOLDER"], product.img))
+
+            filename = secure_filename(unidecode(file.filename))
+            file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+            product.img = filename
+            
+        form.populate_obj(product)
+        product.searchField = f"{product.name} {product.desc}".lower()
+
+        db.session.commit()
         return redirect(url_for("admin_dashboard"))
 
-    return render_template("edit_product.html", product=product)
+    return render_template("edit_product.html", product=product, form=form)
 
 
 @app.route("/admin/delete/<int:product_id>", methods=["POST"])
