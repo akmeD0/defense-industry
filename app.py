@@ -121,7 +121,7 @@ def admin_dashboard():
         search_term = f"%{form.targetValue.data.lower()}%"
         filtered_products = db.session.scalars(db.select(Product).where(
             Product.searchField.like(search_term))
-        )
+        ).all()
     return render_template("admin_dashboard.html", products=filtered_products, admin_name=admin_name, form=form)
 
 @app.route("/admin/admins", methods=["GET", "POST"])
@@ -135,7 +135,7 @@ def admin_list():
         search_term = f"%{form.targetValue.data.lower()}%"
         filtered_admins = db.session.scalars(db.select(User).where(
             User.searchField.like(search_term))
-        )
+        ).all()
     return render_template("admin_dashboard_admins.html", admin_name=admin_name, admins=filtered_admins, form=form)
 
 @app.route("/admin/add_product", methods=["GET", "POST"])
