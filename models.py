@@ -10,12 +10,14 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     name = db.Column(db.String(500), nullable=False)
+    searchField = db.Column(db.String(1000), nullable=False)
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(500), nullable=False)
     desc = db.Column(db.String(500), nullable=False)
     img = db.Column(db.String(256), nullable=True)
+    searchField = db.Column(db.String(1000), nullable=False)
 
 class Carousel(db.Model):
     id = db.Column(db.Integer, primary_key=True)

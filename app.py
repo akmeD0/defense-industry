@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, abort
-from forms import LoginForm
+from forms import LoginForm, SearchForm
+from sqlalchemy import or_
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User, Product, Carousel
 from werkzeug.utils import secure_filename
@@ -109,13 +110,19 @@ def admin():
             error = "Невірний логін або пароль"
     return render_template("admin.html", error=error, form=form)
 
-@app.route("/admin/dashboard")
+@app.route("/admin/dashboard", methods=["GET", "POST"])
 @login_required
 def admin_dashboard():
+    form = SearchForm()
     admin_name = current_user.username
-    q = request.args.get("q", "").lower()
-    filtered_products = [p for p in products if q in p["name"].lower()] if q else products
-    return render_template("admin_dashboard.html", products=filtered_products, admin_name=admin_name)
+    filtered_products = db.session.scalars(db.select(Product)).all()
+
+    if form.validate_on_submit() and form.targetValue.data:
+        search_term = f"%{form.targetValue.data.lower()}%"
+        filtered_products = db.session.scalars(db.select(Product).where(
+            Product.searchField.like(search_term))
+        )
+    return render_template("admin_dashboard.html", products=filtered_products, admin_name=admin_name, form=form)
 
 @app.route("/admin/admins")
 @login_required
@@ -267,6 +274,7 @@ if __name__ == "__main__":
             new_user.email = admin["email"]
             new_user.password = admin["password"]
             new_user.name = admin["name"]
+            new_user.searchField = f"{admin["name"]} {admin["username"]}".lower()
             db.session.add(new_user)
 
 
@@ -277,6 +285,7 @@ if __name__ == "__main__":
             new_product.name = product["name"]
             new_product.desc = product["desc"]
             new_product.img = product["img"]
+            new_product.searchField = f"{product["name"]} {product["desc"]}".lower()
             db.session.add(new_product)
 
 
