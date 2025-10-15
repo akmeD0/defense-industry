@@ -124,12 +124,19 @@ def admin_dashboard():
         )
     return render_template("admin_dashboard.html", products=filtered_products, admin_name=admin_name, form=form)
 
-@app.route("/admin/admins")
+@app.route("/admin/admins", methods=["GET", "POST"])
 @login_required
 def admin_list():
-    q = request.args.get("q", "").lower()
-    filtered_admins = [a for a in admins if q in a["username"].lower() or q in a["name"].lower()] if q else admins
-    return render_template("admin_dashboard_admins.html", admin_name=current_user.username, admins=filtered_admins)
+    form = SearchForm()
+    admin_name = current_user.username
+    filtered_admins = db.session.scalars(db.select(User)).all()
+
+    if form.validate_on_submit() and form.targetValue.data:
+        search_term = f"%{form.targetValue.data.lower()}%"
+        filtered_admins = db.session.scalars(db.select(User).where(
+            User.searchField.like(search_term))
+        )
+    return render_template("admin_dashboard_admins.html", admin_name=admin_name, admins=filtered_admins, form=form)
 
 @app.route("/admin/add_product", methods=["GET", "POST"])
 @login_required
