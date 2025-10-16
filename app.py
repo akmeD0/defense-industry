@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, abort
-from forms import LoginForm, SearchForm, AddProductForm, EditProductForm, AddCarouselForm
+from forms import LoginForm, SearchForm, AddProductForm, EditProductForm, AddCarouselForm, EditCarouselForm
 from flask_login import (
     LoginManager,
     login_user,
@@ -262,7 +262,6 @@ def add_carousel_item():
 
         filename = unique_filename(file.filename)
         file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-
         new_carousel = Carousel()
         form.populate_obj(new_carousel)
         new_carousel.img = filename
@@ -281,42 +280,36 @@ def add_carousel_item():
 @app.route("/admin/carousel/edit/<int:item_id>", methods=["GET", "POST"])
 @login_required
 def edit_carousel(item_id):
-    item = next((c for c in carousel_items if c["id"] == item_id), None)
+    item = db.session.get(Carousel, item_id)
     if not item:
         abort(404)
 
-    if request.method == "POST":
-        # Завантаження нового зображення
-        file = request.files.get("img_file")
+    form = EditCarouselForm(obj=item)
+
+    if form.validate_on_submit():
+        file = form.file.data
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
+            os.remove(os.path.join(app.config["UPLOAD_FOLDER"], item.img))
+            filename = unique_filename(file.filename)
             file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-            item["img"] = filename
+            item.img = filename
+            
+        form.populate_obj(item)
 
-        # Текстові поля
-        item["title"] = request.form.get("title") or item["title"]
-        item["desc"] = request.form.get("desc") or item["desc"]
-        item["text_position"] = (
-            request.form.get("text_position") or item["text_position"]
-        )
-        item["button_text"] = request.form.get("button_text") or item["button_text"]
-        item["button_link"] = request.form.get("button_link") or item["button_link"]
-
+        db.session.commit()
         return redirect(url_for("admin_carousel"))
 
-    return render_template("edit_carousel.html", item=item)
+    return render_template("edit_carousel.html", item=item, form=form)
 
 
 # Видалення слайду каруселі
 @app.route("/admin/carousel/delete/<int:item_id>", methods=["POST"])
 @login_required
 def delete_carousel_item(item_id):
-    global carousel_items
-    item = next((c for c in carousel_items if c["id"] == item_id), None)
-    if not item:
-        abort(404)
-    # Видаляємо елемент зі списку
-    carousel_items = [c for c in carousel_items if c["id"] != item_id]
+    item = db.session.get(Carousel, item_id)
+    os.remove(os.path.join(app.config["UPLOAD_FOLDER"], item.img))
+    db.session.delete(item)
+    db.session.commit()
     return redirect(url_for("admin_carousel"))
 
 

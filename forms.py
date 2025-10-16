@@ -14,23 +14,37 @@ class SearchForm(FlaskForm):
     submit = SubmitField("Пошук")
 
 
-class AddProductForm(FlaskForm):
-    name = StringField("Назва продукту", validators=[DataRequired()])
-    desc = TextAreaField("Опис", validators=[DataRequired()])
-    file = FileField("Зображення", validators=[DataRequired()])
-    submit = SubmitField("Додати")
-
-class EditProductForm(FlaskForm):
+class BaseProductForm(FlaskForm):
     name = StringField("Назва продукту", validators=[DataRequired()])
     desc = TextAreaField("Опис", validators=[DataRequired()])
     file = FileField("Зображення")
+    submit = SubmitField("Зберегти")
+
+class AddProductForm(BaseProductForm):
+    file = FileField("Зображення", validators=[DataRequired()])
     submit = SubmitField("Додати")
 
-class AddCarouselForm(FlaskForm):
-    file = FileField("Зображення", validators=[DataRequired()])
+class EditProductForm(BaseProductForm):
+    submit = SubmitField("Зберегти")
+
+class BaseCarouselForm(FlaskForm):
+    file = FileField("Зображення")
     title = StringField("Заголовок")
     desc = TextAreaField("Опис")
-    text_position = SelectField("Позиція тексту", choices=[('left', 'Зліва'), ('right', 'Справа'), ('center', 'По центру'), ('none', 'Без тексту')])
+    text_position = SelectField("Позиція тексту", choices=[
+            ('left', 'Зліва'),
+            ('right', 'Справа'),
+            ('center', 'По центру'),
+            ('none', 'Без тексту')
+        ]
+    )
     button_text = StringField("Текст кнопки")
     button_link = StringField("Посилання кнопки")
+    submit = SubmitField("Зберегти")
+
+class AddCarouselForm(BaseCarouselForm):
+    file = FileField("Зображення", validators=[DataRequired()])
     submit = SubmitField("Додати слайд")
+
+class EditCarouselForm(BaseCarouselForm):
+    submit = SubmitField("Оновити слайд")
