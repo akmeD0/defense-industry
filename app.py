@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, abort
-from forms import LoginForm, SearchForm, AddProductForm, EditProductForm
+from forms import LoginForm, SearchForm, AddProductForm, EditProductForm, AddCarouselForm
 from flask_login import (
     LoginManager,
     login_user,
@@ -244,44 +244,37 @@ def delete_product(product_id):
 @app.route("/admin/carousel", methods=["GET", "POST"])
 @login_required
 def admin_carousel():
-    return render_template(
-        "admin_carousel.html",
-        admin_name=current_user.username,
-        carousel_items=carousel_items,
-    )
+    admin_name = current_user.username
+    carousel_items = db.session.scalars(db.select(Carousel)).all()
+    return render_template("admin_carousel.html", admin_name=admin_name, carousel_items=carousel_items)
 
 
 @app.route("/admin/add_carousel_item", methods=["GET", "POST"])
 @login_required
 def add_carousel_item():
-    if request.method == "POST":
-        file = request.files.get("img_file")
-        title = request.form.get("title")
-        desc = request.form.get("desc")
-        text_position = request.form.get("text_position") or "center"
-        button_text = request.form.get("button_text") or ""
-        button_link = request.form.get("button_link") or "#"
+    form = AddCarouselForm()
 
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+    if form.validate_on_submit():
+        file = form.file.data
+        if not file or not allowed_file(file.filename):
+            return render_template("add_carousel_item.html", form=form, error="Невірний тип файлу")
 
-            new_id = max([c["id"] for c in carousel_items]) + 1 if carousel_items else 1
-            carousel_items.append(
-                {
-                    "id": new_id,
-                    "img": filename,
-                    "title": title,
-                    "desc": desc,
-                    "text_position": text_position,
-                    "button_text": button_text,
-                    "button_link": button_link,
-                }
-            )
+        filename = secure_filename(unidecode(file.filename))
+        file.save(os.path.join(f"{app.config["UPLOAD_FOLDER"]}/carousel", filename))
 
-            return redirect(url_for("admin_carousel"))
+        new_carousel = Carousel()
+        form.populate_obj(new_carousel)
+        new_carousel.img = filename
 
-    return render_template("add_carousel_item.html")
+        if not new_carousel.button_link:
+            new_carousel.button_link = "#"
+
+        db.session.add(new_carousel)
+        db.session.commit()
+
+        return redirect(url_for("admin_carousel"))
+
+    return render_template("add_carousel_item.html", form=form, error=None)
 
 
 @app.route("/admin/carousel/edit/<int:item_id>", methods=["GET", "POST"])
@@ -364,7 +357,7 @@ if __name__ == "__main__":
             new_item.img = item["img"]
             new_item.title = item["title"]
             new_item.desc = item["desc"]
-            new_item.text_positon = item["text_position"]
+            new_item.text_position = item["text_position"]
             new_item.button_text = item["button_text"]
             new_item.button_link = item["button_link"]
             db.session.add(new_item)

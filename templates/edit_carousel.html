@@ -7,7 +7,7 @@
     {% if item.img %}
     <div class="mb-3">
       <label class="form-label">Поточне зображення</label><br>
-      <img src="{{ url_for('static', filename='img/' + item.img) }}" alt="{{ item.title }}" style="max-width:200px; margin-bottom:10px;">
+      <img src="{{ url_for('static', filename='img/carousel/' + item.img) }}" alt="{{ item.title }}" style="max-width:200px; margin-bottom:10px;">
     </div>
     {% endif %}
 
