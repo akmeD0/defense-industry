@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, abort
+from flask import Flask, render_template, redirect, url_for, abort
 from forms import LoginForm, SearchForm, AddProductForm, EditProductForm, AddCarouselForm, EditCarouselForm
 from flask_login import (
     LoginManager,
@@ -65,19 +65,19 @@ products = [
         "id": 1,
         "name": "Atlas",
         "desc": "Гуманоїдний робот для мобільності та досліджень.",
-        "img": "hero.png",
+        "img": "hero1.png",
     },
     {
         "id": 2,
         "name": "Spot",
         "desc": "Робот-собака для промислових і оборонних задач.",
-        "img": "hero.png",
+        "img": "hero2.png",
     },
     {
         "id": 3,
         "name": "Handle",
         "desc": "Робот для складів та логістики.",
-        "img": "hero.png",
+        "img": "hero3.png",
     },
 ]
 
@@ -132,6 +132,7 @@ def product_detail(product_id):
     product = db.session.get(Product, product_id)
     if not product:
         abort(404)
+
     return render_template("product_detail.html", product=product)
 
 
@@ -143,12 +144,13 @@ def admin():
         return redirect(url_for("admin_dashboard"))
 
     if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
+        user = db.session.scalars(db.select(User).where(User.username == form.username.data)).first()
         if user and user.password == form.password.data:
             login_user(user)
             return redirect(url_for("admin_dashboard"))
         else:
             error = "Невірний логін або пароль"
+
     return render_template("admin.html", error=error, form=form)
 
 
@@ -158,12 +160,12 @@ def admin_dashboard():
     form = SearchForm()
     admin_name = current_user.username
     filtered_products = db.session.scalars(db.select(Product)).all()
-
     if form.validate_on_submit() and form.targetValue.data:
         search_term = f"%{form.targetValue.data.lower()}%"
         filtered_products = db.session.scalars(
             db.select(Product).where(Product.searchField.like(search_term))
         ).all()
+
     return render_template("admin_dashboard.html", products=filtered_products, admin_name=admin_name, form=form)
 
 
@@ -173,12 +175,12 @@ def admin_list():
     form = SearchForm()
     admin_name = current_user.username
     filtered_admins = db.session.scalars(db.select(User)).all()
-
     if form.validate_on_submit() and form.targetValue.data:
         search_term = f"%{form.targetValue.data.lower()}%"
         filtered_admins = db.session.scalars(
             db.select(User).where(User.searchField.like(search_term))
         ).all()
+
     return render_template("admin_dashboard_admins.html", admin_name=admin_name, admins=filtered_admins, form=form)
 
 
@@ -188,22 +190,19 @@ def add_product():
     form = AddProductForm()
     if form.validate_on_submit():
         file = form.file.data
-
         if not file or not allowed_file(file.filename):
             return render_template("add_product.html", form=form, error="Невірний тип файлу")
 
         filename = unique_filename(file.filename)
         file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-
         new_product = Product()
         form.populate_obj(new_product)
         new_product.img = filename
         new_product.searchField = f"{new_product.name} {new_product.desc}".lower()
-
         db.session.add(new_product)
         db.session.commit()
-
         return redirect(url_for("admin_dashboard"))
+    
     return render_template("add_product.html", form=form, error=None)
 
 
@@ -225,7 +224,6 @@ def edit_product(product_id):
             
         form.populate_obj(product)
         product.searchField = f"{product.name} {product.desc}".lower()
-
         db.session.commit()
         return redirect(url_for("admin_dashboard"))
 
@@ -254,24 +252,21 @@ def admin_carousel():
 @login_required
 def add_carousel_item():
     form = AddCarouselForm()
-
     if form.validate_on_submit():
         file = form.file.data
         if not file or not allowed_file(file.filename):
             return render_template("add_carousel_item.html", form=form, error="Невірний тип файлу")
 
-        filename = unique_filename(file.filename)
-        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
         new_carousel = Carousel()
         form.populate_obj(new_carousel)
+        filename = unique_filename(file.filename)
+        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
         new_carousel.img = filename
-
         if not new_carousel.button_link:
             new_carousel.button_link = "#"
 
         db.session.add(new_carousel)
         db.session.commit()
-
         return redirect(url_for("admin_carousel"))
 
     return render_template("add_carousel_item.html", form=form, error=None)
@@ -285,7 +280,6 @@ def edit_carousel(item_id):
         abort(404)
 
     form = EditCarouselForm(obj=item)
-
     if form.validate_on_submit():
         file = form.file.data
         if file and allowed_file(file.filename):
@@ -293,9 +287,8 @@ def edit_carousel(item_id):
             filename = unique_filename(file.filename)
             file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
             item.img = filename
-            
-        form.populate_obj(item)
 
+        form.populate_obj(item)
         db.session.commit()
         return redirect(url_for("admin_carousel"))
 
