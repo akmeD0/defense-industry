@@ -7,7 +7,7 @@ from flask_login import (
     login_required,
     current_user,
 )
-from unidecode import unidecode
+from uuid import uuid4
 from models import db, User, Product, Carousel
 from werkzeug.utils import secure_filename
 import os
@@ -22,6 +22,10 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def unique_filename(filename):
+    ext = filename.rsplit('.', 1)[1]
+    return secure_filename(f"{uuid4()}.{ext}")
 
 
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///users.db"
@@ -188,7 +192,7 @@ def add_product():
         if not file or not allowed_file(file.filename):
             return render_template("add_product.html", form=form, error="Невірний тип файлу")
 
-        filename = secure_filename(unidecode(file.filename))
+        filename = unique_filename(file.filename)
         file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
         new_product = Product()
@@ -214,12 +218,8 @@ def edit_product(product_id):
     if form.validate_on_submit():
         file = form.file.data
         if file and allowed_file(file.filename):
-
-            product_count = Product.query.filter(Product.img == product.img).count()
-            if product_count == 1:
-                os.remove(os.path.join(app.config["UPLOAD_FOLDER"], product.img))
-
-            filename = secure_filename(unidecode(file.filename))
+            os.remove(os.path.join(app.config["UPLOAD_FOLDER"], product.img))
+            filename = unique_filename(file.filename)
             file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
             product.img = filename
             
@@ -236,6 +236,7 @@ def edit_product(product_id):
 @login_required
 def delete_product(product_id):
     product = db.session.get(Product, product_id)
+    os.remove(os.path.join(app.config["UPLOAD_FOLDER"], product.img))
     db.session.delete(product)
     db.session.commit()
     return redirect(url_for("admin_dashboard"))
@@ -259,8 +260,8 @@ def add_carousel_item():
         if not file or not allowed_file(file.filename):
             return render_template("add_carousel_item.html", form=form, error="Невірний тип файлу")
 
-        filename = secure_filename(unidecode(file.filename))
-        file.save(os.path.join(f"{app.config["UPLOAD_FOLDER"]}/carousel", filename))
+        filename = unique_filename(file.filename)
+        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
 
         new_carousel = Carousel()
         form.populate_obj(new_carousel)
