@@ -3,6 +3,7 @@
 <div class="container mt-4">
   <h2>Редагування слайда каруселі</h2>
   <form method="POST" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
     <!-- Поточне зображення -->
     {% if item.img %}
     <div class="mb-3">
@@ -14,40 +15,35 @@
     <!-- Завантаження нового файлу -->
     <div class="mb-3">
       <label class="form-label">Завантажити нове зображення</label>
-      <input type="file" name="img_file" class="form-control">
+      {{ form.file(class_="form-control") }}
     </div>
 
     <div class="mb-3">
       <label class="form-label">Заголовок</label>
-      <input type="text" name="title" value="{{ item.title }}" class="form-control">
+      {{ form.title(class_="form-control") }}
     </div>
 
     <div class="mb-3">
       <label class="form-label">Опис</label>
-      <textarea name="desc" class="form-control" rows="3">{{ item.desc }}</textarea>
+      {{ form.desc(class_="form-control", rows=3) }}
     </div>
 
     <div class="mb-3">
       <label class="form-label">Позиція тексту</label>
-      <select name="text_position" class="form-select">
-        <option value="left" {% if item.text_position == "left" %}selected{% endif %}>Зліва</option>
-        <option value="right" {% if item.text_position == "right" %}selected{% endif %}>Справа</option>
-        <option value="center" {% if item.text_position == "center" %}selected{% endif %}>По центру</option>
-        <option value="none" {% if item.text_position == "none" %}selected{% endif %}>Без тексту</option>
-      </select>
+      {{ form.text_position(class_="form-select") }}
     </div>
 
     <div class="mb-3">
       <label class="form-label">Текст кнопки</label>
-      <input type="text" name="button_text" value="{{ item.button_text }}" class="form-control">
+      {{ form.button_text(class_="form-control") }}
     </div>
 
     <div class="mb-3">
       <label class="form-label">Посилання кнопки</label>
-      <input type="text" name="button_link" value="{{ item.button_link }}" class="form-control">
+      {{ form.button_link(class_="form-control") }}
     </div>
 
-    <button type="submit" class="btn btn-success">Зберегти</button>
+    {{ form.submit(class_="btn btn-success") }}
     <a href="{{ url_for('admin_carousel') }}" class="btn btn-secondary">Назад</a>
   </form>
 </div>

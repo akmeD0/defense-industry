@@ -24,6 +24,6 @@ class Carousel(db.Model):
     img = db.Column(db.String(256), nullable=True)
     title = db.Column(db.String(256), nullable=True)
     desc = db.Column(db.String(500), nullable=False)
-    text_positon = db.Column(db.String(50), nullable=False)
+    text_position = db.Column(db.String(50), nullable=False)
     button_text = db.Column(db.String(128), nullable=False)
     button_link = db.Column(db.String(128), nullable=False)
