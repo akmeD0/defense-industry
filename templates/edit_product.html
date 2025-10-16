@@ -1,24 +1,25 @@
 {% extends "base.html" %}
 {% block content %}
 <form method="POST" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
     <div class="mb-3">
         <label class="form-label">Назва продукту</label>
-        <input type="text" name="name" value="{{ product.name }}" class="form-control" required>
+        {{ form.name(class_="form-control") }}
     </div>
     <div class="mb-3">
         <label class="form-label">Опис</label>
-        <textarea name="desc" class="form-control" rows="4" required>{{ product.desc }}</textarea>
+        {{ form.desc(class_="form-control", rows=4)}}
     </div>
     <div class="mb-3">
         <label class="form-label">Зображення продукту</label>
-        <input type="file" name="img_file" class="form-control">
+        {{ form.file(class_="form-control") }}
         {% if product.img %}
         <small>Поточне: {{ product.img }}</small>
         <br>
         <img src="{{ url_for('static', filename='img/' + product.img) }}" alt="{{ product.name }}" style="max-width: 200px; margin-top: 5px;">
         {% endif %}
     </div>
-    <button type="submit" class="btn btn-success">Зберегти</button>
+    {{ form.submit(class_="btn btn-success", value="Зберегти") }}
     <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Назад</a>
 </form>
 

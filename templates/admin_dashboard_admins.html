@@ -10,9 +10,10 @@
       <h3 class="mb-4">Список адміністраторів</h3>
 
       <!-- Пошук -->
-      <form method="GET" class="mb-3 d-flex">
-        <input type="text" name="q" class="form-control me-2" placeholder="Пошук адміністраторів..." value="{{ request.args.get('q', '') }}">
-        <button class="btn btn-primary">Пошук</button>
+      <form method="POST" class="mb-3 d-flex">
+        {{ form.hidden_tag() }}
+        {{ form.targetValue(placeholder="Пошук продуктів...", class_="form-control me-2") }}
+        {{ form.submit(class_="btn btn-primary") }}
       </form>
 
       <!-- Таблиця адміністраторів -->

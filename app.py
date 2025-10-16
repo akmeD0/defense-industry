@@ -1,7 +1,14 @@
-from flask import Flask, render_template, request, redirect, url_for, abort
-from forms import LoginForm
-from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from models import db, User
+from flask import Flask, render_template, redirect, url_for, abort
+from forms import LoginForm, SearchForm, AddProductForm, EditProductForm, AddCarouselForm, EditCarouselForm
+from flask_login import (
+    LoginManager,
+    login_user,
+    logout_user,
+    login_required,
+    current_user,
+)
+from uuid import uuid4
+from models import db, User, Product, Carousel
 from werkzeug.utils import secure_filename
 import os
 
@@ -12,35 +19,66 @@ UPLOAD_FOLDER = "static/img"  # де будуть зберігатися зав�
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
+
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def unique_filename(filename):
+    ext = filename.rsplit('.', 1)[1]
+    return secure_filename(f"{uuid4()}.{ext}")
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///users.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
 
-login_manager = LoginManager();
+login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "admin"
 
+
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 
 # Список користувачів
 admins = [
-    {"username": "admin", "password": "12345", "name": "Головний Адмін", "email": "admin@example.com"},
-    {"username": "root", "password": "qwerty", "name": "Супер Адмін", "email": "root@example.com"}
+    {
+        "username": "admin",
+        "password": "12345",
+        "name": "Головний Адмін",
+        "email": "admin@example.com",
+    },
+    {
+        "username": "root",
+        "password": "qwerty",
+        "name": "Супер Адмін",
+        "email": "root@example.com",
+    },
 ]
 
 # Список продуктів
 products = [
-    {"id": 1, "name": "Atlas", "desc": "Гуманоїдний робот для мобільності та досліджень.", "img": "hero.png"},
-    {"id": 2, "name": "Spot", "desc": "Робот-собака для промислових і оборонних задач.", "img": "hero.png"},
-    {"id": 3, "name": "Handle", "desc": "Робот для складів та логістики.", "img": "hero.png"}
+    {
+        "id": 1,
+        "name": "Atlas",
+        "desc": "Гуманоїдний робот для мобільності та досліджень.",
+        "img": "hero1.png",
+    },
+    {
+        "id": 2,
+        "name": "Spot",
+        "desc": "Робот-собака для промислових і оборонних задач.",
+        "img": "hero2.png",
+    },
+    {
+        "id": 3,
+        "name": "Handle",
+        "desc": "Робот для складів та логістики.",
+        "img": "hero3.png",
+    },
 ]
 
 # Карусель
@@ -52,7 +90,7 @@ carousel_items = [
         "desc": "Технології, з якими 'Привид Києва' став Легендою.",
         "text_position": "right",
         "button_text": "Переглянути продукцію",
-        "button_link": "/products"
+        "button_link": "/products",
     },
     {
         "id": 2,
@@ -61,7 +99,7 @@ carousel_items = [
         "desc": "Зброя, що змінила сучасну війну.",
         "text_position": "left",
         "button_text": "Переглянути продукцію",
-        "button_link": "/products"
+        "button_link": "/products",
     },
     {
         "id": 3,
@@ -70,26 +108,33 @@ carousel_items = [
         "desc": "Комфорт та безпека.",
         "text_position": "center",
         "button_text": "Переглянути продукцію",
-        "button_link": "/products"
-    }
+        "button_link": "/products",
+    },
 ]
 
 # -------------------- Routes -------------------- #
 
+
 @app.route("/")
 def index():
+    carousel_items = db.session.scalars(db.select(Carousel)).all()
     return render_template("index.html", carousel_items=carousel_items)
+
 
 @app.route("/products")
 def products_page():
+    products = db.session.scalars(db.select(Product)).all()
     return render_template("products.html", products=products)
+
 
 @app.route("/products/<int:product_id>")
 def product_detail(product_id):
-    product = next((p for p in products if p["id"] == product_id), None)
+    product = db.session.get(Product, product_id)
     if not product:
         abort(404)
+
     return render_template("product_detail.html", product=product)
+
 
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
@@ -99,152 +144,165 @@ def admin():
         return redirect(url_for("admin_dashboard"))
 
     if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
+        user = db.session.scalars(db.select(User).where(User.username == form.username.data)).first()
         if user and user.password == form.password.data:
             login_user(user)
             return redirect(url_for("admin_dashboard"))
-        else: 
+        else:
             error = "Невірний логін або пароль"
+
     return render_template("admin.html", error=error, form=form)
 
-@app.route("/admin/dashboard")
+
+@app.route("/admin/dashboard", methods=["GET", "POST"])
 @login_required
 def admin_dashboard():
+    form = SearchForm()
     admin_name = current_user.username
-    q = request.args.get("q", "").lower()
-    filtered_products = [p for p in products if q in p["name"].lower()] if q else products
-    return render_template("admin_dashboard.html", products=filtered_products, admin_name=admin_name)
+    filtered_products = db.session.scalars(db.select(Product)).all()
+    if form.validate_on_submit() and form.targetValue.data:
+        search_term = f"%{form.targetValue.data.lower()}%"
+        filtered_products = db.session.scalars(
+            db.select(Product).where(Product.searchField.like(search_term))
+        ).all()
 
-@app.route("/admin/admins")
+    return render_template("admin_dashboard.html", products=filtered_products, admin_name=admin_name, form=form)
+
+
+@app.route("/admin/admins", methods=["GET", "POST"])
 @login_required
 def admin_list():
-    q = request.args.get("q", "").lower()
-    filtered_admins = [a for a in admins if q in a["username"].lower() or q in a["name"].lower()] if q else admins
-    return render_template("admin_dashboard_admins.html", admin_name=current_user.username, admins=filtered_admins)
+    form = SearchForm()
+    admin_name = current_user.username
+    filtered_admins = db.session.scalars(db.select(User)).all()
+    if form.validate_on_submit() and form.targetValue.data:
+        search_term = f"%{form.targetValue.data.lower()}%"
+        filtered_admins = db.session.scalars(
+            db.select(User).where(User.searchField.like(search_term))
+        ).all()
+
+    return render_template("admin_dashboard_admins.html", admin_name=admin_name, admins=filtered_admins, form=form)
+
 
 @app.route("/admin/add_product", methods=["GET", "POST"])
 @login_required
 def add_product():
-    if request.method == "POST":
-        name = request.form.get("name")
-        desc = request.form.get("desc")
-        file = request.files.get("img_file")
+    form = AddProductForm()
+    if form.validate_on_submit():
+        file = form.file.data
+        if not file or not allowed_file(file.filename):
+            return render_template("add_product.html", form=form, error="Невірний тип файлу")
 
-        if name and desc and file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+        filename = unique_filename(file.filename)
+        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+        new_product = Product()
+        form.populate_obj(new_product)
+        new_product.img = filename
+        new_product.searchField = f"{new_product.name} {new_product.desc}".lower()
+        db.session.add(new_product)
+        db.session.commit()
+        return redirect(url_for("admin_dashboard"))
+    
+    return render_template("add_product.html", form=form, error=None)
 
-            new_id = max([p["id"] for p in products]) + 1 if products else 1
-            products.append({"id": new_id, "name": name, "desc": desc, "img": filename})
-
-            return redirect(url_for("admin_dashboard"))
-
-    return render_template("add_product.html")
 
 @app.route("/admin/edit/<int:product_id>", methods=["GET", "POST"])
 @login_required
 def edit_product(product_id):
-    product = next((p for p in products if p["id"] == product_id), None)
+    product = db.session.get(Product, product_id)
     if not product:
         abort(404)
 
-    if request.method == "POST":
-        product["name"] = request.form.get("name")
-        product["desc"] = request.form.get("desc")
-
-        # Завантаження файлу
-        file = request.files.get("img_file")
+    form = EditProductForm(obj=product)
+    if form.validate_on_submit():
+        file = form.file.data
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
+            os.remove(os.path.join(app.config["UPLOAD_FOLDER"], product.img))
+            filename = unique_filename(file.filename)
             file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-            product["img"] = filename  # зберігаємо ім'я файлу в продукті
-
+            product.img = filename
+            
+        form.populate_obj(product)
+        product.searchField = f"{product.name} {product.desc}".lower()
+        db.session.commit()
         return redirect(url_for("admin_dashboard"))
 
-    return render_template("edit_product.html", product=product)
+    return render_template("edit_product.html", product=product, form=form)
+
 
 @app.route("/admin/delete/<int:product_id>", methods=["POST"])
 @login_required
 def delete_product(product_id):
-    global products
-    products = [p for p in products if p["id"] != product_id]
+    product = db.session.get(Product, product_id)
+    os.remove(os.path.join(app.config["UPLOAD_FOLDER"], product.img))
+    db.session.delete(product)
+    db.session.commit()
     return redirect(url_for("admin_dashboard"))
-
 
 
 @app.route("/admin/carousel", methods=["GET", "POST"])
 @login_required
 def admin_carousel():
-    return render_template("admin_carousel.html", admin_name=current_user.username, carousel_items=carousel_items)
+    admin_name = current_user.username
+    carousel_items = db.session.scalars(db.select(Carousel)).all()
+    return render_template("admin_carousel.html", admin_name=admin_name, carousel_items=carousel_items)
+
 
 @app.route("/admin/add_carousel_item", methods=["GET", "POST"])
 @login_required
 def add_carousel_item():
-    if request.method == "POST":
-        file = request.files.get("img_file")
-        title = request.form.get("title")
-        desc = request.form.get("desc")
-        text_position = request.form.get("text_position") or "center"
-        button_text = request.form.get("button_text") or ""
-        button_link = request.form.get("button_link") or "#"
+    form = AddCarouselForm()
+    if form.validate_on_submit():
+        file = form.file.data
+        if not file or not allowed_file(file.filename):
+            return render_template("add_carousel_item.html", form=form, error="Невірний тип файлу")
 
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+        new_carousel = Carousel()
+        form.populate_obj(new_carousel)
+        filename = unique_filename(file.filename)
+        file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+        new_carousel.img = filename
+        if not new_carousel.button_link:
+            new_carousel.button_link = "#"
 
-            new_id = max([c["id"] for c in carousel_items]) + 1 if carousel_items else 1
-            carousel_items.append({
-                "id": new_id,
-                "img": filename,
-                "title": title,
-                "desc": desc,
-                "text_position": text_position,
-                "button_text": button_text,
-                "button_link": button_link
-            })
+        db.session.add(new_carousel)
+        db.session.commit()
+        return redirect(url_for("admin_carousel"))
 
-            return redirect(url_for("admin_carousel"))
-
-    return render_template("add_carousel_item.html")
+    return render_template("add_carousel_item.html", form=form, error=None)
 
 
 @app.route("/admin/carousel/edit/<int:item_id>", methods=["GET", "POST"])
 @login_required
 def edit_carousel(item_id):
-    item = next((c for c in carousel_items if c["id"] == item_id), None)
+    item = db.session.get(Carousel, item_id)
     if not item:
         abort(404)
 
-    if request.method == "POST":
-        # Завантаження нового зображення
-        file = request.files.get("img_file")
+    form = EditCarouselForm(obj=item)
+    if form.validate_on_submit():
+        file = form.file.data
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
+            os.remove(os.path.join(app.config["UPLOAD_FOLDER"], item.img))
+            filename = unique_filename(file.filename)
             file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-            item["img"] = filename
+            item.img = filename
 
-        # Текстові поля
-        item["title"] = request.form.get("title") or item["title"]
-        item["desc"] = request.form.get("desc") or item["desc"]
-        item["text_position"] = request.form.get("text_position") or item["text_position"]
-        item["button_text"] = request.form.get("button_text") or item["button_text"]
-        item["button_link"] = request.form.get("button_link") or item["button_link"]
-
+        form.populate_obj(item)
+        db.session.commit()
         return redirect(url_for("admin_carousel"))
 
-    return render_template("edit_carousel.html", item=item)
+    return render_template("edit_carousel.html", item=item, form=form)
 
 
 # Видалення слайду каруселі
 @app.route("/admin/carousel/delete/<int:item_id>", methods=["POST"])
 @login_required
 def delete_carousel_item(item_id):
-    global carousel_items
-    item = next((c for c in carousel_items if c["id"] == item_id), None)
-    if not item:
-        abort(404)
-    # Видаляємо елемент зі списку
-    carousel_items = [c for c in carousel_items if c["id"] != item_id]
+    item = db.session.get(Carousel, item_id)
+    os.remove(os.path.join(app.config["UPLOAD_FOLDER"], item.img))
+    db.session.delete(item)
+    db.session.commit()
     return redirect(url_for("admin_carousel"))
 
 
@@ -253,17 +311,42 @@ def logout():
     logout_user()
     return redirect(url_for("admin"))
 
+
 # -------------------- Run -------------------- #
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
         for admin in admins:
-            if not User.query.filter_by(username=admin["username"]).first():
-                new_user = User()
-                new_user.username = admin["username"]
-                new_user.email = admin["email"]
-                new_user.password = admin["password"]
-                new_user.name = admin["name"]
-                db.session.add(new_user)
+            if User.query.filter_by(username=admin["username"]).first():
+                continue
+            new_user = User()
+            new_user.username = admin["username"]
+            new_user.email = admin["email"]
+            new_user.password = admin["password"]
+            new_user.name = admin["name"]
+            new_user.searchField = f"{admin["name"]} {admin["username"]}".lower()
+            db.session.add(new_user)
+
+        for product in products:
+            if Product.query.filter_by(name=product["name"]).first():
+                continue
+            new_product = Product()
+            new_product.name = product["name"]
+            new_product.desc = product["desc"]
+            new_product.img = product["img"]
+            new_product.searchField = f"{product["name"]} {product["desc"]}".lower()
+            db.session.add(new_product)
+
+        for item in carousel_items:
+            if Carousel.query.filter_by(title=item["title"]).first():
+                continue
+            new_item = Carousel()
+            new_item.img = item["img"]
+            new_item.title = item["title"]
+            new_item.desc = item["desc"]
+            new_item.text_position = item["text_position"]
+            new_item.button_text = item["button_text"]
+            new_item.button_link = item["button_link"]
+            db.session.add(new_item)
         db.session.commit()
     app.run(debug=True)
