@@ -235,8 +235,9 @@ def edit_product(product_id):
 @app.route("/admin/delete/<int:product_id>", methods=["POST"])
 @login_required
 def delete_product(product_id):
-    global products
-    products = [p for p in products if p["id"] != product_id]
+    product = db.session.get(Product, product_id)
+    db.session.delete(product)
+    db.session.commit()
     return redirect(url_for("admin_dashboard"))
 
 
