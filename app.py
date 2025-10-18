@@ -123,7 +123,7 @@ def index():
 
 @app.route("/products")
 def products_page():
-    products = db.session.scalars(db.select(Product)).all()
+    products = db.session.scalars(db.select(Product))
     return render_template("products.html", products=products)
 
 
@@ -159,12 +159,12 @@ def admin():
 def admin_dashboard():
     form = SearchForm()
     admin_name = current_user.username
-    filtered_products = db.session.scalars(db.select(Product)).all()
+    filtered_products = db.session.scalars(db.select(Product))
     if form.validate_on_submit() and form.targetValue.data:
         search_term = f"%{form.targetValue.data.lower()}%"
         filtered_products = db.session.scalars(
             db.select(Product).where(Product.searchField.like(search_term))
-        ).all()
+        )
 
     return render_template("admin_dashboard.html", products=filtered_products, admin_name=admin_name, form=form)
 
@@ -174,12 +174,12 @@ def admin_dashboard():
 def admin_list():
     form = SearchForm()
     admin_name = current_user.username
-    filtered_admins = db.session.scalars(db.select(User)).all()
+    filtered_admins = db.session.scalars(db.select(User))
     if form.validate_on_submit() and form.targetValue.data:
         search_term = f"%{form.targetValue.data.lower()}%"
         filtered_admins = db.session.scalars(
             db.select(User).where(User.searchField.like(search_term))
-        ).all()
+        )
 
     return render_template("admin_dashboard_admins.html", admin_name=admin_name, admins=filtered_admins, form=form)
 
@@ -244,7 +244,7 @@ def delete_product(product_id):
 @login_required
 def admin_carousel():
     admin_name = current_user.username
-    carousel_items = db.session.scalars(db.select(Carousel)).all()
+    carousel_items = db.session.scalars(db.select(Carousel))
     return render_template("admin_carousel.html", admin_name=admin_name, carousel_items=carousel_items)
 
 
