@@ -7,6 +7,7 @@ from flask_login import (
     login_required,
     current_user,
 )
+from flask_sqlalchemy import SQLAlchemy
 from uuid import uuid4
 from models import db, User, Product, Carousel
 from werkzeug.utils import secure_filename
@@ -45,71 +46,71 @@ def load_user(user_id):
 
 # Список користувачів
 admins = [
-    {
-        "username": "admin",
-        "password": "12345",
-        "name": "Головний Адмін",
-        "email": "admin@example.com",
-    },
-    {
-        "username": "root",
-        "password": "qwerty",
-        "name": "Супер Адмін",
-        "email": "root@example.com",
-    },
+    # {
+    #     "username": "admin",
+    #     "password": "12345",
+    #     "name": "Головний Адмін",
+    #     "email": "admin@example.com",
+    # },
+    # {
+    #     "username": "root",
+    #     "password": "qwerty",
+    #     "name": "Супер Адмін",
+    #     "email": "root@example.com",
+    # },
 ]
 
 # Список продуктів
 products = [
-    {
-        "id": 1,
-        "name": "Atlas",
-        "desc": "Гуманоїдний робот для мобільності та досліджень.",
-        "img": "hero1.png",
-    },
-    {
-        "id": 2,
-        "name": "Spot",
-        "desc": "Робот-собака для промислових і оборонних задач.",
-        "img": "hero2.png",
-    },
-    {
-        "id": 3,
-        "name": "Handle",
-        "desc": "Робот для складів та логістики.",
-        "img": "hero3.png",
-    },
+    # {
+    #     "id": 1,
+    #     "name": "Atlas",
+    #     "desc": "Гуманоїдний робот для мобільності та досліджень.",
+    #     "img": "hero1.png",
+    # },
+    # {
+    #     "id": 2,
+    #     "name": "Spot",
+    #     "desc": "Робот-собака для промислових і оборонних задач.",
+    #     "img": "hero2.png",
+    # },
+    # {
+    #     "id": 3,
+    #     "name": "Handle",
+    #     "desc": "Робот для складів та логістики.",
+    #     "img": "hero3.png",
+    # },
 ]
 
 # Карусель
 carousel_items = [
-    {
-        "id": 1,
-        "img": "su-27.jpg",
-        "title": "Технології для нашої авіації",
-        "desc": "Технології, з якими 'Привид Києва' став Легендою.",
-        "text_position": "right",
-        "button_text": "Переглянути продукцію",
-        "button_link": "/products",
-    },
-    {
-        "id": 2,
-        "img": "fpv.jpeg",
-        "title": "FPV — дрони",
-        "desc": "Зброя, що змінила сучасну війну.",
-        "text_position": "left",
-        "button_text": "Переглянути продукцію",
-        "button_link": "/products",
-    },
-    {
-        "id": 3,
-        "img": "ssu2.jpg",
-        "title": "Якісне спорядження",
-        "desc": "Комфорт та безпека.",
-        "text_position": "center",
-        "button_text": "Переглянути продукцію",
-        "button_link": "/products",
-    },
+    # {
+    #     "id": 1,
+    #     "img": "su-27.jpg",
+    #     "title": "Технології для нашої авіації",
+    #     "desc": "Технології, з якими 'Привид Києва' став Легендою.",
+    #     "text_position": "right",
+    #     "button_text": "Переглянути продукцію",
+    #     "button_link": "/products",
+    # },
+    # {
+    #     "id": 2,
+    #     "img": "fpv.jpeg",
+    #     "title": "FPV — дрони",
+    #     "desc": "Зброя, що змінила сучасну війну.",
+    #     "text_position": "left",
+    #     "button_text": "Переглянути продукцію",
+    #     "button_link": "/products",
+    # },
+    # {
+    #     "id": 3,
+    #     "img": "ssu2.jpg",
+    #     "title": "Якісне спорядження",
+    #     "desc": "Комфорт та безпека.",
+    #     "text_position": "center",
+    #     "button_text": "Переглянути продукцію",
+    #     "button_link": "/products",
+    # },
 ]
 
 # -------------------- Routes -------------------- #
@@ -117,22 +118,19 @@ carousel_items = [
 
 @app.route("/")
 def index():
-    carousel_items = db.session.scalars(db.select(Carousel)).all()
+    carousel_items = db.session.query(Carousel)
     return render_template("index.html", carousel_items=carousel_items)
 
 
 @app.route("/products")
 def products_page():
-    products = db.session.scalars(db.select(Product)).all()
+    products = db.session.query(Product)
     return render_template("products.html", products=products)
 
 
 @app.route("/products/<int:product_id>")
 def product_detail(product_id):
-    product = db.session.get(Product, product_id)
-    if not product:
-        abort(404)
-
+    product = Product.query.get_or_404(product_id)
     return render_template("product_detail.html", product=product)
 
 
@@ -144,7 +142,7 @@ def admin():
         return redirect(url_for("admin_dashboard"))
 
     if form.validate_on_submit():
-        user = db.session.scalars(db.select(User).where(User.username == form.username.data)).first()
+        user = db.session.query(User).filter(User.username == form.username.data).first()
         if user and user.password == form.password.data:
             login_user(user)
             return redirect(url_for("admin_dashboard"))
@@ -158,30 +156,24 @@ def admin():
 @login_required
 def admin_dashboard():
     form = SearchForm()
-    admin_name = current_user.username
-    filtered_products = db.session.scalars(db.select(Product)).all()
+    filtered_products = db.session.query(Product)
     if form.validate_on_submit() and form.targetValue.data:
         search_term = f"%{form.targetValue.data.lower()}%"
-        filtered_products = db.session.scalars(
-            db.select(Product).where(Product.searchField.like(search_term))
-        ).all()
+        filtered_products = filtered_products.filter(Product.searchField.like(search_term))
 
-    return render_template("admin_dashboard.html", products=filtered_products, admin_name=admin_name, form=form)
+    return render_template("admin_dashboard.html", products=filtered_products, admin_name=current_user.username, form=form)
 
 
 @app.route("/admin/admins", methods=["GET", "POST"])
 @login_required
 def admin_list():
     form = SearchForm()
-    admin_name = current_user.username
-    filtered_admins = db.session.scalars(db.select(User)).all()
+    filtered_admins = db.session.query(User)
     if form.validate_on_submit() and form.targetValue.data:
         search_term = f"%{form.targetValue.data.lower()}%"
-        filtered_admins = db.session.scalars(
-            db.select(User).where(User.searchField.like(search_term))
-        ).all()
+        filtered_admins = filtered_admins.filter(User.searchField.like(search_term))
 
-    return render_template("admin_dashboard_admins.html", admin_name=admin_name, admins=filtered_admins, form=form)
+    return render_template("admin_dashboard_admins.html", admin_name=current_user.username, admins=filtered_admins, form=form)
 
 
 @app.route("/admin/add_product", methods=["GET", "POST"])
@@ -209,10 +201,7 @@ def add_product():
 @app.route("/admin/edit/<int:product_id>", methods=["GET", "POST"])
 @login_required
 def edit_product(product_id):
-    product = db.session.get(Product, product_id)
-    if not product:
-        abort(404)
-
+    product = Product.query.get_or_404(product_id)
     form = EditProductForm(obj=product)
     if form.validate_on_submit():
         file = form.file.data
@@ -243,9 +232,8 @@ def delete_product(product_id):
 @app.route("/admin/carousel", methods=["GET", "POST"])
 @login_required
 def admin_carousel():
-    admin_name = current_user.username
-    carousel_items = db.session.scalars(db.select(Carousel)).all()
-    return render_template("admin_carousel.html", admin_name=admin_name, carousel_items=carousel_items)
+    carousel_items = db.session.query(Carousel)
+    return render_template("admin_carousel.html", admin_name=current_user.username, carousel_items=carousel_items)
 
 
 @app.route("/admin/add_carousel_item", methods=["GET", "POST"])
@@ -275,10 +263,7 @@ def add_carousel_item():
 @app.route("/admin/carousel/edit/<int:item_id>", methods=["GET", "POST"])
 @login_required
 def edit_carousel(item_id):
-    item = db.session.get(Carousel, item_id)
-    if not item:
-        abort(404)
-
+    item = Carousel.query.get_or_404(item_id)
     form = EditCarouselForm(obj=item)
     if form.validate_on_submit():
         file = form.file.data
