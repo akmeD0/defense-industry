@@ -10,9 +10,9 @@
     <!-- Навбар -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark py-3">
         <div class="container">
-            <a class="navbar-brand fw-bold " href="{{ url_for('index') }}" margin-right="0">prod.nexus</a>     
+            <a class="navbar-brand fw-bold " href="{{ url_for('main.index') }}" margin-right="0">prod.nexus</a>     
                
-            <a class="navbar-brand fw-bold me-5" href="{{ url_for('index') }}"> 
+            <a class="navbar-brand fw-bold me-5" href="{{ url_for('main.index') }}"> 
                 <img src="{{ url_for('static', filename='img/logo/wlogo.png') }}" alt="Logo" height="20">
             </a>     
 
@@ -23,13 +23,13 @@
             <div class="collapse navbar-collapse" id="navMenu">
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                     <li class="nav-item px-3">
-                        <a class="nav-link text-light" href="{{ url_for('index') }}">Головна</a>
+                        <a class="nav-link text-light" href="{{ url_for('main.index') }}">Головна</a>
                     </li>
                     <li class="nav-item px-3">
-                        <a class="nav-link text-light" href="{{ url_for('products_page') }}">Продукція</a>
+                        <a class="nav-link text-light" href="{{ url_for('main.products_page') }}">Продукція</a>
                     </li>
                     <li class="nav-item px-3">
-                        <a class="nav-link text-light" href="{{ url_for('admin') }}">Адмін</a>
+                        <a class="nav-link text-light" href="{{ url_for('admin.admin') }}">Адмін</a>
                     </li>
                 </ul>
             </div>
